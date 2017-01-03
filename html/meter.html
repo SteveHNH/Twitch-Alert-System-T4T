@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="en-US">
+<head>
+<meta http-equiv="Content-Script-Type" content="text/javascript">
+<title>2DorksTV - Charity Meter</title>
+<style>
+@import url('https://fonts.googleapis.com/css?family=Bangers');
+</style>
+<script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js">
+</script>
+<script>
+
+/* set this to when donations end */
+CountDownTimer('12/22/2016 7:00 AM', 'countdown');
+/* updateStats(); */
+
+function CountDownTimer(dt, id)
+{
+  var end = new Date(dt);
+
+  var _second = 1000;
+  var _minute = _second * 60;
+  var _hour = _minute * 60;
+  var timer;
+
+  function showRemaining() {
+    var now = new Date();
+    var distance = end - now;
+    if (distance < 0) {
+      clearInterval(timer);
+      document.getElementById(id).innerHTML = '0';
+      return;
+    }
+    var hours = Math.floor(distance / _hour);
+    var minutes = Math.floor((distance % _hour) / _minute);
+
+    document.getElementById(id).innerHTML =
+      hours + ' hours, ' +
+      minutes + ' minutes';
+  }
+
+  /* showRemaining();
+   *
+   * this line was meant for the initial tick, but it breaks everything. WHY?
+   */
+
+  timer = setInterval(showRemaining, 10 * _second); /* keep doing the thing! */
+}
+
+/* TODO
+function updateStats()
+{
+  /* Update the ids:
+   * '$' + amount
+   * percent + ' percent' (calculated)
+   * sponsors
+   *
+   * The tricky bit will be to avoid cross-domain restrictions when
+   * requesting your text file for parsing. I don't know how you
+   * have it set up, but maybe having your script modify this file
+   * would be easier?
+   * /
+}
+*/
+
+</script>
+
+<script type="text/javascript">
+$(document).ready(function () {
+function callAjax() {
+$("#amount").load("total.txt");
+}
+setInterval(callAjax, 10000);
+});</script>
+
+<script type="text/javascript">
+$(document).ready(function () {
+function callAjax() {
+$("#sponsors").load("lines.txt");
+}
+setInterval(callAjax, 10000);
+});</script>
+
+<script type="text/javascript">
+$(document).ready(function () {
+function callAjax() {
+$("#percent").load("percent.txt");
+}
+setInterval(callAjax, 10000);
+});</script>
+
+<script type="text/javascript">
+$(document).ready(function () {
+function callAjax() {
+$.get("percent.txt", function( percentage) {;
+$("#meter-fill").css("width", percentage);
+});
+}
+setInterval(callAjax, 10000);
+});
+</script>
+
+<style type="text/css">
+
+body {
+  /*
+   * I put this in just to show it on a dark background.
+   * Switch it to transparent before using this as an overlay.
+   *
+  background-color: transparent;
+   */
+  background-color: black;
+  font-family: 'Bangers', cursive;
+}
+
+* { color: white !important; }
+/* sshhhhh... don't tell Professor Barrett lol */
+
+/* global wrapper */
+#donations {
+  width: 100%;
+  height: 300px;
+  padding: 20px;
+  font-family: 'Bangers', cursive;
+}
+
+#goal {
+  color: white;
+  font-size: 48px;
+  width: 80%;
+  text-align: right;
+}
+
+#meter-bg {
+  width: 80%;
+  height: 20px;
+  background: #D98300; /* HnH orange */
+  border-radius: 10px;
+  float: left;
+  overflow: hidden;
+}
+
+#meter-fill {
+  float: left;
+  height: 20px;
+  background: #0E8866; /* HnH green */
+  z-index: 42;
+}
+
+/*
+ * ids are in place for you to update these via script.
+ * alternatively, you could use some nice php to inject these.
+ */
+.goal-stat {
+  width: 20%;
+  height: 30px;
+  padding: 10px;
+  float: left;
+  margin: 0;
+}
+
+.goal-number, .goal-label {
+  display: block;
+}
+
+.goal-number {
+  font-weight: bold;
+}
+
+</style>
+</head>
+<body>
+
+<div id=donations>
+  <div id="goal">$500</div>
+  <div id="meter-bg">
+    <div id="meter-fill">
+    </div>
+  </div>
+  <div class="goal-stat">
+    <span class="goal-number"><div id="percent"></div></span>
+    <span class="goal-label">Funded</span>
+  </div>
+  <div class="goal-stat">
+    <span class="goal-number"><div id="amount"></div></span>
+    <span class="goal-label">Raised</span>
+  </div>
+  <div class="goal-stat">
+    <span class="goal-number"><div id="countdown"></div></span>
+    <span class="goal-label">to Go</span>
+  </div>
+  <div class="goal-stat">
+    <span class="goal-number"><div id="sponsors"></div></span>
+    <span class="goal-label">Sponsors</span>
+  </div>
+</div>
+
+</body></html>
