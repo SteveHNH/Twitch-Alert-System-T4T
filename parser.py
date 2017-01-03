@@ -20,7 +20,7 @@ url = 'http://www.twitchalerts.com/api/v1.0/alerts'
 # Used subscription because our particular channel isn't partnered and this
 # alert will never fire unless it's a donation from toys for tots
 payload = {
-    "access_token": "i5SItwavhHtY7Cu1UxreU0DFJfzNMOiDEkMh2w3E",
+    "access_token": "API_ACCESS_TOKEN",
     "duration": "5",
     "type": "subscription",
     "special_text_color": "#ff0000",
@@ -39,8 +39,8 @@ driver.get("https://p2p.charityengine.net/ToysforTotsFoundation/Dashboard/Donati
 # log in
 username_field = driver.find_element_by_name('UserName') # get the username field
 password_field = driver.find_element_by_name('Password') # get the password field
-username_field.send_keys("jlh0807ecu@gmail.com") # enter in your username
-password_field.send_keys("2DorksTV") # enter in your password
+username_field.send_keys("username") # enter in your username
+password_field.send_keys("password") # enter in your password
 password_field.submit() # submit it
 
 # gotta wait while the new site loads
