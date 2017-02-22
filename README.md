@@ -13,7 +13,6 @@ Here are the things that we used to get it going. You can adapt some of this to 
 * python 2
 * docker (if you want to do it the way we did)
 * an internet accessible server (if you intend for the meter and content to be public)
-* [PhantomJS](http://phantomjs.org/)
 * Your [Streamlabs](http://www.streamlabs.com) access token
 
 ## Getting your Streamlabs access token
