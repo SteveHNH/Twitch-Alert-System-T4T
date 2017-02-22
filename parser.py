@@ -12,6 +12,7 @@ import redis
 from selenium import webdriver
 import time
 import requests
+import os
 
 #Twitchalerts API
 url = 'http://www.twitchalerts.com/api/v1.0/alerts'
