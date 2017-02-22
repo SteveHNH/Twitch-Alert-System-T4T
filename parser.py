@@ -32,8 +32,16 @@ def alert(name, donation):
     session = requests.Session()
     response = session.post(url, data=payload)
 
-# initiate
-driver = webdriver.PhantomJS() # initiate a driver, in this case PhatomJS. No Window PopUp
+def get_driver():
+    cwd = os.path.dirname(os.path.realpath(__file__))
+    kwargs = { 'service_log_path': os.path.devnull,
+    }
+    kwargs['executable_path'] = os.path.join(cwd, 'bin/phantomjs')
+
+    driver = webdriver.PhantomJS(**kwargs) # initiate a driver, in this case PhatomJS. No Window PopUp
+    return driver
+
+driver = get_driver()
 driver.get("https://p2p.charityengine.net/ToysforTotsFoundation/Dashboard/Donations/") # go to the url
 
 # log in
