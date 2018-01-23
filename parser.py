@@ -8,17 +8,17 @@ system will parse the table containing all the donations and alert when any new
 ones appear.
 """
 import re
-import redis
 from selenium import webdriver
 import time
 import requests
 import os
-import uuid
+import sqlite3
+import hashlib
 
-#Twitchalerts API
+# Twitchalerts API
 url = 'https://streamlabs.com/api/v1.0/alerts'
 
-#Donate API
+# Donate API
 durl = 'https://streamlabs.com/api/v1.0/donations'
 
 # Payload. Use the subscription alert function. Add the sound and gif to that.
@@ -38,36 +38,40 @@ query = {
     "currency": "USD",
 }
 
+sqlite_file = '/root/db.sqlite'
+
+
 # Define the alert function that will be used to actually fire to streamlabs
 def alert(name, donation):
     payload['message'] = '*' + str(name) + '* has donated *' + str(donation) + '* to Toys For Tots!'
     session = requests.Session()
-    response = session.post(url, data=payload)
+    session.post(url, data=payload)
 
-def donate(name, donation):
+
+def donate(name, donation, hash_):
     query['name'] = name.replace(' ', '_')
-    query['identifier'] = str(uuid.uuid4())
+    query['identifier'] = hash_
     query['amount'] = donation.strip('$')
     session = requests.Session()
-    response = session.post(durl, data=query)
+    session.post(durl, data=query)
+
 
 def get_driver():
     cwd = os.path.dirname(os.path.realpath(__file__))
-    kwargs = { 'service_log_path': os.path.devnull,
-    }
+    kwargs = {'service_log_path': os.path.devnull}
     kwargs['executable_path'] = os.path.join(cwd, 'bin/phantomjs')
 
-    driver = webdriver.PhantomJS(**kwargs) # initiate a driver, in this case PhatomJS. No Window PopUp
+    driver = webdriver.PhantomJS(**kwargs)  # initiate a driver, in this case PhatomJS. No Window PopUp
     return driver
 
 driver = get_driver()
-driver.get("URL containing table of donations") # go to the url
+driver.get("URL containing table of donations")  # go to the url
 
 # log in
-username_field = driver.find_element_by_name('user[email]') # get the username field
-password_field = driver.find_element_by_name('user[password]') # get the password field
-username_field.send_keys("username") # enter in your username
-password_field.send_keys("password") # enter in your password
+username_field = driver.find_element_by_name('user[email]')  # get the username field
+password_field = driver.find_element_by_name('user[password]')  # get the password field
+username_field.send_keys("username")  # enter in your username
+password_field.send_keys("password")  # enter in your password
 driver.find_element_by_id('new_user').submit()
 
 # gotta wait while the new site loads
@@ -75,16 +79,19 @@ time.sleep(3)
 
 html = driver.page_source
 
-#turn the html into ascii so we can iterate over the lines
-html = html.encode('ascii','ignore')
+# turn the html into ascii so we can iterate over the lines
+html = html.encode('ascii', 'ignore')
 
-#close PhantomJS Instance
+# close PhantomJS Instance
 driver.quit()
 
-# connect to the local redis DB running in a docker container
-# This IP is going to change based on your environment.
-# Use `docker inspect` on your redis box to get the IP
-r = redis.StrictRedis(host='172.17.0.2', port=6379)
+# use MD5 for usernames
+m = hashlib.md5()
+
+# Connect to the sqlite database
+conn = sqlite3.connect(sqlite_file)
+db = conn.cursor()
+db.execute('CREATE TABLE IF NOT EXISTS donations ("id" PRIMARY KEY, name TEXT, amount TEXT, timestamp TEXT)')
 
 # create a result that will hold each dictionary
 result = []
@@ -98,9 +105,11 @@ for line in split:
     if re.search("(<td>Opted out of communications<\/td>)", line):
         continue
     if match:
+        donate_id = '\n'.join(re.findall('\d+', match.group(0)))
         # Create a hold dictionary when we find a name
         hold = {}
-        hold['name'] = split[split.index(match.group(0)) + 1].strip()
+        hold['name'] = split[split.index(match.group(0)) + 1].strip().split()[0]
+        hold['donate_id'] = donate_id
     # Find the donation amount. It will be the next line so we should be good
     if money:
         hold['donation'] = split[split.index(money.group(0)) + 1].strip()
@@ -115,17 +124,25 @@ f = open('/root/Twitch-Alert-System-T4T/html/donations.txt', 'a+')
 # iterate over the result list, load each dict into the redis db as a keypair
 # and write the data set to donations.txt for use in a webservice
 for i in result:
-    if r.get(i.get('name')) != i.get('donation'):
+    db.execute('SELECT "id" FROM "donations" WHERE "id"=' + i.get('donate_id'))
+    exists = db.fetchone()
+    if not exists:
         f.write(i.get('name') + ': ' + i.get('donation') + '<br />' + '\n')
-        r.set(i.get('name'), i.get('donation'))
+        db.execute('INSERT INTO "donations" ("id", "name", "value", "timestamp") VALUES ("' +
+                  i.get('donate_id') + '", "' + i.get('name') + '", "' +
+                  i.get('donation') + '", + "' + time.strftime("%c") + '")')
+        db.commit()
+        # get md5 hash of username for donation compilation
+        m.update(i.get('name'))
         # Send the alert to twitch alerts using the defined function
         # Sleep time set to 15 to avoid overloading streamlabs. Not sure if this is
         # a problem or not.
         time.sleep(15)
         # Pull the name and donation from the dictionary, not redis.
         alert(i.get('name'), i.get('donation'))
-        donate(i.get('name'), i.get('donation'))
+        donate(i.get('name'), i.get('donation'), m.hexdigest())
 f.close()
+db.close()
 
 with open('/root/Twitch-Alert-System-T4T/html/donations.txt', 'r') as content_file:
     content = content_file.read()
@@ -139,7 +156,7 @@ for line in content.splitlines():
 f.write('${:,.2f}'.format(total) + '\n')
 f.close()
 
-# write the percentage to a file
+# write the percentage to a file. Change second numeral to goal
 f = open('/root/Twitch-Alert-System-T4T/html/percent.txt', 'w+')
 percentage = float(total) / 1000
 f.write("{:.0%}".format(percentage) + '   \n')
