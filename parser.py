@@ -85,15 +85,20 @@ def donate(name, donation, hash_):
         return "error"
 
 
-def scrape_page():
+def login():
     br.open(URL)
     br.select_form(nr=0)
-    br.form['UserName'] = USERNAME
-    br.form['Password'] = PASSWORD
-    br.submit()
+    try:
+        br.form['user[email]'] = USERNAME
+        br.form['user[password]'] = PASSWORD
+        br.submit()
+    except mechanize.ControlNotFoundError as e:
+        return
 
+
+def scrape_page():
+    br.open(URL)
     return br.response().read()
-
 
 def init_db():
     conn = sqlite3.connect(sqlite_file)
@@ -113,15 +118,16 @@ def main():
     result = []
 
     # Loop over the lines in the HTML to get the lines we want
+    login()
 
     soup = BeautifulSoup(scrape_page(), 'html.parser')
 
-    for tr in soup.find_all('tr')[2:]:
+    for tr in soup.find_all('tr')[1:]:
         hold = {}
         tds = tr.find_all('td')
-        hold['name'] = tds[0].text.strip().split(' ')[0]
-        hold['amount'] = tds[1].text.strip()
-        hold['id'] = re.sub('[^0-9]', '', tds[4].a['id'].strip())
+        hold['name'] = tds[1].text.strip().split(' ')[0]
+        hold['amount'] = tds[2].text.strip()
+        hold['id'] = re.sub('[^0-9]', '', tds[1].get('id').strip())
 
         result.append(hold)
 
@@ -149,8 +155,6 @@ def main():
                 logger.info("Donation recorded for %s for %s", i.get('name'), i.get('amount'))
                 # get md5 hash of username for donation compilation
                 time.sleep(5)
-        else:
-            logger.info("Donation ID exists for user: %s", i.get('name'))
     f.close()
     db.close()
 
