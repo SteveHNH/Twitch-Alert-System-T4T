@@ -92,13 +92,14 @@ def login():
         br.form['user[email]'] = USERNAME
         br.form['user[password]'] = PASSWORD
         br.submit()
-    except mechanize.ControlNotFoundError as e:
+    except mechanize.ControlNotFoundError:
         return
 
 
 def scrape_page():
     br.open(URL)
     return br.response().read()
+
 
 def init_db():
     conn = sqlite3.connect(sqlite_file)
@@ -149,8 +150,8 @@ def main():
             else:
                 f.write(i.get('name') + ': ' + i.get('amount') + '<br />' + '\n')
                 db.execute('INSERT INTO "donations" ("id", "name", "amount", "timestamp") VALUES ("' +
-                        i.get('id') + '", "' + i.get('name') + '", "' +
-                        i.get('amount') + '", + "' + time.strftime("%c") + '")')
+                           i.get('id') + '", "' + i.get('name') + '", "' +
+                           i.get('amount') + '", + "' + time.strftime("%c") + '")')
                 conn.commit()
                 logger.info("Donation recorded for %s for %s", i.get('name'), i.get('amount'))
                 # get md5 hash of username for donation compilation
