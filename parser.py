@@ -173,7 +173,7 @@ def main():
 
     # write the percentage to a file. Change second numeral to goal
     f = open(cwd + '/html/percent.txt', 'w+')
-    percentage = float(total) / 2000
+    percentage = float(total) / 1500
     f.write("{:.0%}".format(percentage) + '   \n')
     # Get the number of lines so we can feed it to the meter
     num_lines = sum(1 for line in open(cwd + '/html/donations.txt'))
